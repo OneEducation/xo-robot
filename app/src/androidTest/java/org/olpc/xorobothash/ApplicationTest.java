@@ -1,4 +1,4 @@
-package mu.andy.xorobothash;
+package org.olpc.xorobothash;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;
