@@ -4,9 +4,6 @@
     <string name="app_name">XO Robot Hash</string>
     <string name="action_settings">Settings</string>
     <string name="robot_text_message">My XO\'s Robot is</string>
-    <string name="robot_image_internal_filename">this-xos-robot2.png</string>
-    <string name="robohash_url">http://robohash.org/</string>
-    <string name="robohash_file_extension">.png?size=500x500</string>
     <string name="no_network_connection">You need to be connected to the internet to get your robot!</string>
 
 

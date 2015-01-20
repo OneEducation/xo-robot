@@ -24,95 +24,96 @@ import java.io.OutputStream;
 import java.net.URL;
 import java.net.HttpURLConnection;
 
-
-
 public class MainActivity extends ActionBarActivity {
 
-    ImageView robotImageView;
-    String robotImagePath;
+    private ImageView robotImageView;
 
     //For debugging
-    String tag = "XORoboHash";
+    private static final String TAG = "XORobotHash";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         robotImageView = (ImageView) findViewById(R.id.robot_hash_image);
-        robotImagePath = this.getFilesDir() + File.pathSeparator + getString(R.string.robot_image_internal_filename);
         getRobot();
     }
 
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-
     private void getRobot() {
-        Log.i (tag, "In getRobot()");
-        //Check if the robot image file already exists
-        File file = new File(robotImagePath);
-        // Check if we have already downloaded the XO's robot image
-        if(file.exists()) {
-            Log.i (tag, "Robohash image file exists.");
-            // Show the already downloaded robohash image
-            showRobot(robotImagePath);
-            return;
+        boolean isConnected = checkNetworkConnectivity();
+        boolean done = updateView(isConnected);
+        if (!done) {
+           if(isConnected) {
+               // Will call updateView again when done
+               new DownloadRobotImage().execute(uniqueRoboHashURL(), robotImagePath());
+           }
+           // Nothing else to do, updateView already showed the right error message
         }
+    }
 
-        Log.i (tag, "File does not exist.");
-        // We haven't already downloaded the image - check network connectivity
+    private boolean updateView(boolean isConnected) {
+        Log.i(TAG, "In updateView()");
+        boolean robotVisible = false;
+        File file = new File(robotImagePath());
+        // Check if we have ever successfully downloaded the XO's robot image
+        if (file.exists()) {
+            Log.i(TAG, "Robohash image file exists.");
+            robotVisible = showRobot(robotImagePath());
+        } else if (!isConnected) {
+            Log.i(TAG, "Robohash image file does not exist, network is not connected.");
+            showDisconnected();
+        }
+        return robotVisible;
+    }
+
+    private boolean showRobot(String imagePath) {
+        Log.i(TAG, "In showRobot()");
+        boolean robotDrawn;
+        Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
+        robotImageView.setImageBitmap(bitmap);
+        // Check if the robot image is visible
+        robotDrawn = robotImageView.getDrawable() == null ? false : true;
+        return robotDrawn;
+    }
+
+    private void showDisconnected() {
+        //Hide the robot text
+        TextView robotText = (TextView) findViewById(R.id.robot_text_message);
+        robotText.setVisibility(View.GONE);
+        //Hide the robot image
+        ImageView robotImage = (ImageView) findViewById(R.id.robot_hash_image);
+        robotImage.setVisibility(View.GONE);
+        //Show the disconnected error message
+        TextView errorMessage = (TextView) findViewById(R.id.error_message);
+        errorMessage.setText(getString(R.string.no_network_connection));
+    }
+
+    private String robotImagePath() {
+        return this.getFilesDir() + File.pathSeparator + "this-xos-robot.png";
+    }
+
+    private String uniqueRoboHashURL() {
+        //TODO test on a real android device
+        String serialNumber = android.os.Build.SERIAL;  // if SERIAL doesn't work, try Settings.Secure.ANDROID_ID; ?
+        return "http://robohash.org/" + serialNumber + ".png?size=500x500";
+    }
+
+    private boolean checkNetworkConnectivity() {
+        boolean connected;
         ConnectivityManager connMgr = (ConnectivityManager)
                 getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
         if (networkInfo != null && networkInfo.isConnected()) {
-            Log.i (tag, "Network is connected.");
-            // Get the device's serial and concatenate into a RoboHash URL
-            String serialNumber = android.os.Build.SERIAL;  // if SERIAL doesn't work, try Settings.Secure.ANDROID_ID; ?
-            String roboHashUrl = getString(R.string.robohash_url) + serialNumber + getString(R.string.robohash_file_extension);
-            // Execute the async download of the image
-            new DownloadRobotImage().execute(roboHashUrl);
+            Log.i(TAG, "Network is connected.");
+            connected = true;
         } else {
-            Log.e (tag, "Network is NOT connected.");
-            // Hide the "Your robot is" message
-            TextView robotText = (TextView) findViewById(R.id.robot_text_message);
-            robotText.setVisibility(View.GONE);
-            // Show the no network connection message
-            TextView errorMessage = (TextView) findViewById(R.id.error_message);
-            errorMessage.setText(getString(R.string.no_network_connection));
-            return;
+            Log.e(TAG, "Network is NOT connected.");
+            connected = false;
         }
-
+        return connected;
     }
 
-    private void showRobot(String imagePath) {
-        Log.i (tag, "In showRobot()");
-        if(imagePath!=null) {
-            Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
-            robotImageView.setImageBitmap(bitmap);
-        }
-    }
-
-    private class DownloadRobotImage extends AsyncTask<String, Void, String> {
+    private class DownloadRobotImage extends AsyncTask<String, Void, Boolean> {
 
         @Override
         protected void onPreExecute() {
@@ -120,18 +121,16 @@ public class MainActivity extends ActionBarActivity {
         }
 
         @Override
-        protected String doInBackground(String... params) {
-            Log.i (tag, "In DownloadRobotImage() doInBackground()");
-
+        protected Boolean doInBackground(String... params) {
+            Log.i(TAG, "In DownloadRobotImage() doInBackground()");
             HttpURLConnection connection = null;
-
+            Boolean downloadSuccess = true;
             try {
                 URL url = new URL(params[0]);
                 connection = (HttpURLConnection) url.openConnection();
 
                 InputStream in = new BufferedInputStream(connection.getInputStream());
-
-                OutputStream out = new FileOutputStream(robotImagePath);
+                OutputStream out = new FileOutputStream(params[1]);
 
                 int data = in.read();
                 while (data != -1) {
@@ -139,26 +138,20 @@ public class MainActivity extends ActionBarActivity {
                     data = in.read();
                 }
             } catch (IOException e) {
-                Log.e("TASK", "error retrieving robohash.org image", e);
-                e.printStackTrace();
-                return null;
+                Log.e(TAG + " TASK", "error retrieving robohash.org image", e);
+                downloadSuccess = false;
             } finally {
                 if (connection != null) {
                     connection.disconnect();
                 }
             }
-
-            return robotImagePath;
-
+            return downloadSuccess;
         }
 
-        protected void onPostExecute(String imagePath) {
-            // TODO Display the image in the robot_hash_image ImageView
-            Log.i (tag, "In onPostExecute()");
-            showRobot(imagePath);
-
+        protected void onPostExecute(Boolean downloadSuccess) {
+            Log.i(TAG, "In onPostExecute()");
+            updateView(downloadSuccess);
         }
-
     }
 
 }
