@@ -36,10 +36,14 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         robotImageView = (ImageView) findViewById(R.id.robot_hash_image);
-        getRobot();
+        fetchRobot();
     }
 
-    private void getRobot() {
+    /**
+     * Updates the view to show the already-downloaded robot, otherwise attempts to download it.
+     * @return whether a robot image was successfully displayed
+     */
+    private void fetchRobot() {
         boolean isConnected = checkNetworkConnectivity();
         boolean done = updateView(isConnected);
         if (!done) {
@@ -54,25 +58,33 @@ public class MainActivity extends ActionBarActivity {
     private boolean updateView(boolean isConnected) {
         Log.i(TAG, "In updateView()");
         boolean robotVisible = false;
-        File file = new File(robotImagePath());
+        File robotFile = new File(robotImagePath());
         // Check if we have ever successfully downloaded the XO's robot image
-        if (file.exists()) {
+        if (robotFile.exists()) {
             Log.i(TAG, "Robohash image file exists.");
-            robotVisible = showRobot(robotImagePath());
-        } else if (!isConnected) {
+            robotVisible = showRobot(robotFile);
+            //If the robot couldn't be displayed, delete the file
+            if (!robotVisible) {
+                deleteFile(robotFile.getAbsolutePath());
+            }
+        }
+        if (!isConnected && !robotVisible ) {
             Log.i(TAG, "Robohash image file does not exist, network is not connected.");
             showDisconnected();
         }
         return robotVisible;
     }
 
-    private boolean showRobot(String imagePath) {
+    private boolean showRobot(File robotFile) {
         Log.i(TAG, "In showRobot()");
-        boolean robotDrawn;
-        Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
-        robotImageView.setImageBitmap(bitmap);
-        // Check if the robot image is visible
-        robotDrawn = robotImageView.getDrawable() == null ? false : true;
+        boolean robotDrawn = false;
+        Bitmap bitmap = BitmapFactory.decodeFile(robotFile.getAbsolutePath());
+        // Check the bitmap is valid
+        if (bitmap != null) {
+            // Draw the valid bitmap
+            robotImageView.setImageBitmap(bitmap);
+            robotDrawn = true;
+        }
         return robotDrawn;
     }
 
@@ -89,7 +101,7 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private String robotImagePath() {
-        return this.getFilesDir() + File.pathSeparator + "this-xos-robot.png";
+        return this.getFilesDir() + File.pathSeparator + "this-xos-robot019.png";
     }
 
     private String uniqueRoboHashURL() {
@@ -124,7 +136,7 @@ public class MainActivity extends ActionBarActivity {
         protected Boolean doInBackground(String... params) {
             Log.i(TAG, "In DownloadRobotImage() doInBackground()");
             HttpURLConnection connection = null;
-            Boolean downloadSuccess = true;
+            boolean downloadSuccess = false;
             try {
                 URL url = new URL(params[0]);
                 connection = (HttpURLConnection) url.openConnection();
@@ -137,8 +149,11 @@ public class MainActivity extends ActionBarActivity {
                     out.write(data);
                     data = in.read();
                 }
+                downloadSuccess = true;
             } catch (IOException e) {
                 Log.e(TAG + " TASK", "error retrieving robohash.org image", e);
+                // Delete the file
+                deleteFile(params[1]);
                 downloadSuccess = false;
             } finally {
                 if (connection != null) {
@@ -150,7 +165,11 @@ public class MainActivity extends ActionBarActivity {
 
         protected void onPostExecute(Boolean downloadSuccess) {
             Log.i(TAG, "In onPostExecute()");
-            updateView(downloadSuccess);
+            if (downloadSuccess) {
+                updateView(downloadSuccess);
+            } else {
+                showDisconnected();
+            }
         }
     }
 
