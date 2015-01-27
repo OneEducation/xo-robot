@@ -1,5 +1,6 @@
 package org.olpc.xorobothash;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -27,6 +28,7 @@ import java.net.HttpURLConnection;
 public class MainActivity extends ActionBarActivity {
 
     private ImageView robotImageView;
+    private ProgressDialog pd;
 
     //For debugging
     private static final String TAG = "XORobotHash";
@@ -129,7 +131,7 @@ public class MainActivity extends ActionBarActivity {
 
         @Override
         protected void onPreExecute() {
-            // TODO Display a spinner or loading message
+            pd = ProgressDialog.show(MainActivity.this, "", "Please wait while we find your robot...", false);
         }
 
         @Override
@@ -165,6 +167,7 @@ public class MainActivity extends ActionBarActivity {
 
         protected void onPostExecute(Boolean downloadSuccess) {
             Log.i(TAG, "In onPostExecute()");
+            pd.dismiss();
             if (downloadSuccess) {
                 updateView(downloadSuccess);
             } else {
