@@ -1,8 +1,10 @@
 package org.olpc.xorobothash;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Path;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -27,6 +29,7 @@ import java.net.HttpURLConnection;
 public class MainActivity extends ActionBarActivity {
 
     private ImageView robotImageView;
+    private ProgressDialog pd;
 
     //For debugging
     private static final String TAG = "XORobotHash";
@@ -101,13 +104,17 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private String robotImagePath() {
-        return this.getFilesDir() + File.pathSeparator + "this-xos-robot019.png";
+        File path = this.getFilesDir();
+        File file = new File(path, "this-xos-robot.png");
+        return file.toString();
     }
 
     private String uniqueRoboHashURL() {
-        //TODO test on a real android device
-        String serialNumber = android.os.Build.SERIAL;  // if SERIAL doesn't work, try Settings.Secure.ANDROID_ID; ?
-        return "http://robohash.org/" + serialNumber + ".png?size=500x500";
+        String serialNumber = android.os.Build.SERIAL;
+        // ignoreext=false tells robohash.org to ignore everything including and after
+        // the file extension ".png" when generating the robot; ensures changing the request
+        // params won't change the robot image.
+        return "http://robohash.org/" + serialNumber + ".png?ignoreext=false&size=600x600";
     }
 
     private boolean checkNetworkConnectivity() {
@@ -129,7 +136,7 @@ public class MainActivity extends ActionBarActivity {
 
         @Override
         protected void onPreExecute() {
-            // TODO Display a spinner or loading message
+            pd = ProgressDialog.show(MainActivity.this, "", getString(R.string.loading_message), false);
         }
 
         @Override
@@ -165,6 +172,7 @@ public class MainActivity extends ActionBarActivity {
 
         protected void onPostExecute(Boolean downloadSuccess) {
             Log.i(TAG, "In onPostExecute()");
+            pd.dismiss();
             if (downloadSuccess) {
                 updateView(downloadSuccess);
             } else {
