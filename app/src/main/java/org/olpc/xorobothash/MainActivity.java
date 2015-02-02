@@ -4,6 +4,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Path;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -103,11 +104,16 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private String robotImagePath() {
-        return this.getFilesDir() + File.pathSeparator + "this-xos-robot.png";
+        File path = this.getFilesDir();
+        File file = new File(path, "this-xos-robot.png");
+        return file.toString();
     }
 
     private String uniqueRoboHashURL() {
-        String serialNumber = android.os.Build.SERIAL;  // if SERIAL doesn't work, try Settings.Secure.ANDROID_ID; ?
+        String serialNumber = android.os.Build.SERIAL;
+        // ignoreext=false tells robohash.org to ignore everything including and after
+        // the file extension ".png" when generating the robot; ensures changing the request
+        // params won't change the robot image.
         return "http://robohash.org/" + serialNumber + ".png?ignoreext=false&size=600x600";
     }
 

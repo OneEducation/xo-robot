@@ -5,7 +5,7 @@
     <string name="action_settings">Settings</string>
     <string name="robot_text_message">My XO\'s Robot is</string>
     <string name="no_network_connection">You need to be connected to the internet to get your robot!</string>
-    <string name="loading_message">Please wait while we find your robot...</string>
+    <string name="loading_message">Building your robot...</string>
 
 
 
