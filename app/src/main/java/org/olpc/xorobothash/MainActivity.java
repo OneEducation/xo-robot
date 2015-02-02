@@ -103,13 +103,12 @@ public class MainActivity extends ActionBarActivity {
     }
 
     private String robotImagePath() {
-        return this.getFilesDir() + File.pathSeparator + "this-xos-robot019.png";
+        return this.getFilesDir() + File.pathSeparator + "this-xos-robot.png";
     }
 
     private String uniqueRoboHashURL() {
-        //TODO test on a real android device
         String serialNumber = android.os.Build.SERIAL;  // if SERIAL doesn't work, try Settings.Secure.ANDROID_ID; ?
-        return "http://robohash.org/" + serialNumber + ".png?size=500x500";
+        return "http://robohash.org/" + serialNumber + ".png?size=600x600";
     }
 
     private boolean checkNetworkConnectivity() {
@@ -131,7 +130,7 @@ public class MainActivity extends ActionBarActivity {
 
         @Override
         protected void onPreExecute() {
-            pd = ProgressDialog.show(MainActivity.this, "", "Please wait while we find your robot...", false);
+            pd = ProgressDialog.show(MainActivity.this, "", getString(R.string.loading_message), false);
         }
 
         @Override
