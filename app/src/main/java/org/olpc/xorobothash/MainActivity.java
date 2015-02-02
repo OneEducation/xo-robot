@@ -108,7 +108,7 @@ public class MainActivity extends ActionBarActivity {
 
     private String uniqueRoboHashURL() {
         String serialNumber = android.os.Build.SERIAL;  // if SERIAL doesn't work, try Settings.Secure.ANDROID_ID; ?
-        return "http://robohash.org/" + serialNumber + ".png?size=600x600";
+        return "http://robohash.org/" + serialNumber + ".png?ignoreext=false&size=600x600";
     }
 
     private boolean checkNetworkConnectivity() {
